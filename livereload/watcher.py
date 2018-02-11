@@ -24,7 +24,8 @@ logger = logging.getLogger('livereload')
 
 class Watcher(object):
     """A file watcher registery."""
-    def __init__(self):
+
+    def __init__(self, provide_filename=False):
         self._tasks = {}
         self._mtimes = {}
 
@@ -34,6 +35,8 @@ class Watcher(object):
         # filepath that is changed
         self.filepath = None
         self._start = time.time()
+
+        self._provide_filename = provide_filename
 
     def ignore(self, filename):
         """Ignore a given filename or not."""
@@ -80,7 +83,10 @@ class Watcher(object):
                 if func:
                     logger.info("Running task: {} (delay: {})".format(
                         func.repr_str, delay))
-                    func()
+                    if self._provide_filename:
+                        func(path)
+                    else:
+                        func()
 
         if delays:
             delay = max(delays)
