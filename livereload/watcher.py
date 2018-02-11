@@ -75,7 +75,8 @@ class Watcher(object):
         delays = set()
         for path in self._tasks:
             item = self._tasks[path]
-            if self.is_changed(path, item['ignore']):
+            changed_path = self.is_changed(path, item['ignore'])
+            if changed_path:
                 func = item['func']
                 delay = item['delay']
                 if delay and isinstance(delay, float):
@@ -84,7 +85,7 @@ class Watcher(object):
                     logger.info("Running task: {} (delay: {})".format(
                         func.repr_str, delay))
                     if self._provide_filename:
-                        func(path)
+                        func(changed_path)
                     else:
                         func()
 
@@ -116,15 +117,18 @@ class Watcher(object):
         if path not in self._mtimes:
             self._mtimes[path] = mtime
             self.filepath = path
-            return mtime > self._start
+            if mtime > self._start:
+                return path
+            else:
+                return None
 
         if self._mtimes[path] != mtime:
             self._mtimes[path] = mtime
             self.filepath = path
-            return True
+            return path
 
         self._mtimes[path] = mtime
-        return False
+        return None
 
     def is_folder_changed(self, path, ignore=None):
         for root, dirs, files in os.walk(path, followlinks=True):
@@ -139,14 +143,14 @@ class Watcher(object):
 
             for f in files:
                 if self.is_file_changed(os.path.join(root, f), ignore):
-                    return True
-        return False
+                    return os.path.join(root, f)
+        return None
 
     def is_glob_changed(self, path, ignore=None):
         for f in glob.glob(path):
             if self.is_file_changed(f, ignore):
-                return True
-        return False
+                return f
+        return None
 
 
 class INotifyWatcher(Watcher):
